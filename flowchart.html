@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Architecture Flowchart</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg: #faf8f4;
+            --paper: #ffffff;
+            --border: #e8e2d9;
+            --ink: #1c1814;
+            --ink3: #a09890;
+            --terra: #c8522a;
+            --font: 'Plus Jakarta Sans', sans-serif;
+            --serif: 'Instrument Serif', serif;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font);
+            background: var(--bg);
+            color: var(--ink);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px 24px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            max-width: 600px;
+        }
+
+        .eyebrow {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--terra);
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .page-title {
+            font-family: var(--serif);
+            font-size: 36px;
+            font-weight: 400;
+            font-style: italic;
+            color: var(--ink);
+            line-height: 1.15;
+            margin-bottom: 12px;
+        }
+
+        .page-title span {
+            font-style: normal;
+        }
+
+        .page-sub {
+            font-size: 14px;
+            color: var(--ink3);
+            line-height: 1.6;
+        }
+
+        .canvas-container {
+            background: var(--paper);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 1100px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+            overflow-x: auto;
+        }
+
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <span class="eyebrow">System Architecture</span>
+        <h1 class="page-title"><span>Camera</span> Stock Ecosystem</h1>
+        <p class="page-sub">A visual map of the data flow from physical object detection at the edge, through the local
+            Python pipeline, and into the interactive dashboard.</p>
+    </div>
+
+    <div class="canvas-container">
+        <div class="mermaid">
+            %%{init: {
+            "theme": "base",
+            "themeVariables": {
+            "fontFamily": "Plus Jakarta Sans",
+            "primaryColor": "#ffffff",
+            "primaryBorderColor": "#e8e2d9",
+            "primaryTextColor": "#1c1814",
+            "lineColor": "#a09890",
+            "clusterBkg": "#faf8f4",
+            "clusterBorder": "#d4cdc2"
+            }
+            }}%%
+            flowchart TD
+            classDef hardware fill:#fdf0eb,stroke:#f0c4b0,stroke-width:1.5px,color:#c8522a;
+            classDef script fill:#eef3fc,stroke:#b8cef0,stroke-width:1.5px,color:#2a5ca8;
+            classDef ui fill:#edf7f2,stroke:#b8dece,stroke-width:1.5px,color:#2a7a52;
+            classDef user fill:#fdf6e8,stroke:#f0dba8,stroke-width:1.5px,color:#9a6c18;
+            classDef file fill:#ffffff,stroke:#e8e2d9,stroke-width:1.5px,color:#1c1814,stroke-dasharray:5;
+
+            subgraph Edge["📸 1. Edge AI and Hardware (object_detection.py)"]
+            direction TB
+            A[Webcam Video Feed]:::hardware --> B(YOLOv8 Model Tracks IDs):::hardware
+            B --> C{"Item leaves frame?"}:::hardware
+            C -->|Yes| D[Log event and quantity]:::hardware
+            D -->|Appends row| E[product_log.csv]:::file
+            end
+
+            subgraph Pipeline["⚙️ 2. Data Pipeline (start.sh)"]
+            direction TB
+            E -.->|Renamed/Moved to| F[Downloads / Update log.csv]:::file
+            G[Bash Script: start.sh]:::script -->|Copies CSVs to root| H[Project Directory]:::file
+            G -->|Initializes| I[Local HTTP Server :8080]:::script
+            H -.-> I
+            end
+
+            subgraph Dashboard["📊 3. Dashboard UI (HTML/JS)"]
+            direction TB
+            I --> J[Browser loads localhost]:::ui
+            J -->|autoLoad fetch| K[Parse Orders and Restocks]:::ui
+            K --> L[Calculate Live Inventory]:::ui
+            L --> M[Update KPIs and Alert Banners]:::ui
+            L --> N[Render Line and Donut Charts]:::ui
+            L --> O[Populate Stock Table and Heatmap]:::ui
+            end
+
+            subgraph Feedback["👤 4. User Interaction Loop"]
+            direction TB
+            P((Store Owner)):::user -->|Analyzes Data| M
+            P -->|Configures Products| Q[Save Settings to LocalStorage]:::user
+            P -->|Logs Restock via UI Modal| R[Updates UI Live]:::user
+            R -->|Clicks Save restock log| S[Download restock_log.csv]:::file
+            S -.->|Picked up next launch by| G
+            end
+
+            %% Connections between subgraphs
+            Edge --> Pipeline
+            Pipeline --> Dashboard
+            Dashboard --> Feedback
+        </div>
+    </div>
+
+    <script type="module">
+        import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.esm.min.mjs';
+        mermaid.initialize({ startOnLoad: true });
+    </script>
+</body>
+
+</html>
